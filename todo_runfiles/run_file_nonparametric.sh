@@ -1,5 +1,5 @@
-PYTHONPATH="/home/dasnyder/Documents/GitHub/sbt/":"${PYTHONPATH}"
-export PYTHONPATH
+# PYTHONPATH="/home/dasnyder/Documents/GitHub/sbt/":"${PYTHONPATH}"
+# export PYTHONPATH
 
 # python sequentialized_barnard_tests/scripts/simple_adaptive_nsm_test.py -a 0.05 -n 2000 -s 31415 -nta 1000 -ntn 100
 # python sequentialized_barnard_tests/scripts/nonparametric_nsm_test.py -a 0.05 -n 2000 -s 31415 -nta 5 -ntn 5
