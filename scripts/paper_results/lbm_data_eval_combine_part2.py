@@ -1,5 +1,8 @@
 import numpy as np
-
+import os 
+import sys
+add_path = os.getcwd()
+sys.path.append(add_path)
 
 if __name__ == "__main__":
 

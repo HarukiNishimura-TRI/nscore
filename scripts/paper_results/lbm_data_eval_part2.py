@@ -1,16 +1,21 @@
 import pandas as pd
 import os 
+import sys
+add_path = os.getcwd()
+sys.path.append(add_path)
 
 import numpy as np
-from sequentialized_barnard_tests.nsm import MirroredPartialCreditNsmTest, BernoulliNsmTest
-from sequentialized_barnard_tests.savi import MirroredSaviTest
-from sequentialized_barnard_tests.nonparametric_nsm import MirroredContinuousNsmTest
-from sequentialized_barnard_tests.wsr import WsrComparisonTest
-from sequentialized_barnard_tests.step import MirroredStepTest
 
+from sequentialized_barnard_tests.step import MirroredStepTest
 from sequentialized_barnard_tests.base import Hypothesis, Decision
 
+from nscore.nsm import MirroredPartialCreditNsmTest, BernoulliNsmTest
+from nscore.savi import MirroredSaviTest
+from nscore.nonparametric_nsm import MirroredContinuousNsmTest
+from nscore.wsr import WsrComparisonTest
+
 if __name__ == "__main__":
+
     file_path = 'data/LBM/lbm_data.pkl'
 
     dict_of_dfs = pd.read_pickle(file_path)

@@ -1,5 +1,3 @@
-binomial_cis
-sequentialized_barnard_tests
 black
 isort
 matplotlib

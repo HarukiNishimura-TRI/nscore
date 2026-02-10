@@ -3,7 +3,7 @@ Docstring for sequentialized_barnard_tests.wsr
 """
 
 import numpy as np
-from sequentialized_barnard_tests.utils.utils_wsr import mean_cs_eff_corrected_membership_accelerated
+from nscore.utils.utils_wsr import mean_cs_eff_corrected_membership_accelerated
 from sequentialized_barnard_tests.base import Decision, Hypothesis, SequentialTestBase, TestResult
 
 from typing import Union

@@ -7,7 +7,7 @@ sys.path.append(add_path)
 if __name__ == "__main__":
 
     # Load the data
-    file_path_1 = 'data/LBM/LBM_RESULTS_PART_1.npy'
+    file_path_1 = 'data/LBM/LBM_RESULTS_PART_3.npy'
 
     RESULTS_1 = np.load(file_path_1)
 
