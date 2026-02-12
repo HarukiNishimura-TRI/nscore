@@ -5,9 +5,6 @@
 # python sequentialized_barnard_tests/scripts/nonparametric_nsm_test.py -a 0.05 -n 2000 -s 31415 -nta 5 -ntn 5
 # python sequentialized_barnard_tests/scripts/nonparametric_nsm_scaling_test.py -a 0.05 -n 2000 -s 31415 -nta 10 -ntn 10
 # python sequentialized_barnard_tests/scripts/nonparametric_nsm_and_wsr_comparison.py -a 0.05 -n 2000 -s 31415 -nta 100 -ntn 10
-python sequentialized_barnard_tests/scripts/full_large_scale_bernoulli_test.py -a 0.05 -n 1000 -s 31415 -nta 50 -ntn 2
-python sequentialized_barnard_tests/scripts/analyze_full_large_scale_bernoulli_test.py
-python sequentialized_barnard_tests/scripts/viz_full_large_scale_bernoulli_test.py
 # python scripts/partial_credit_nsm_debug.py -a 0.05 -n 2000 -s 31415
 # python sequentialized_barnard_tests/scripts/synthesize_general_step_policy.py -n 500 -a 0.005
 # python sequentialized_barnard_tests/scripts/multitest_heuristic.py 
