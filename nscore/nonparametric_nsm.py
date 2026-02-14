@@ -7,7 +7,6 @@ from typing import Union
 
 import numpy as np
 from scipy.stats import beta, dirichlet
-import sequentialized_barnard_tests as sbt
 
 from sequentialized_barnard_tests.base import (
     Decision,

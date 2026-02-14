@@ -6,8 +6,34 @@ from sequentialized_barnard_tests.tools.plotting import (
 )
 
 from tqdm import tqdm 
+import argparse
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(
+        description=(
+            "This script runs a meta-evaluation of the feedback-based NSM procedure."
+        )
+    )
+    parser.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=42,
+        help=("Random seed assignment for repeatability. " "Defaults to 42."),
+    )
+    parser.add_argument(
+        "-p",
+        "--path", 
+        type=str,
+        default="validate_violin_plot.png",
+        help=("Output plot name. " "String type."),
+    )
+    # Parse the args
+    args = parser.parse_args()
+
+    # Reset the random seed
+    np.random.seed(args.seed)
 
     # Specify global parameters
     global_confidence_level = 0.95 
@@ -98,10 +124,10 @@ if __name__ == "__main__":
         model_name_list,
         progress_array_list,
         cld_list,
-        rng=np.random.default_rng(123), # For plotting violins
+        rng=np.random.default_rng(args.seed), # For plotting violins
         mode="task_progress",
         progress_bins=progress_bins,
-        output_path="tmp_violin.png"
+        output_path="figures/" + args.path
     )
     print("Plot generated. Two models that do not share any CLD letters are significantly different.")
 
