@@ -11,11 +11,13 @@ pip install -r requirements_pip.txt
 
 
 ### Citation
-If you find this code useful, please cite our work:  
-<textarea id="bibtex" class="form-control" rows="7" readonly>
-    @inproceedings{snyder_beyond_2026,
-        title = {Beyond {Binary} {Success}: {Sample}-{Efficient} and {Statistically} {Rigorous} {Robot} {Policy} {Comparison}},
-        author = {Snyder, David and Badithela, Apurva and Matni, Nikolai and Pappas, George and Majumdar, Anirudha and Itkina, Masha and Nishimura, Haruki},
-        booktitle={arXiv preprint arXiv:2603.13616}
-        year = {2026},
-}   </textarea>
+If you find this code useful, please cite our work: 
+
+```bibtex
+@inproceedings{snyder_beyond_2026,
+    title = {Beyond {Binary} {Success}: {Sample}-{Efficient} and {Statistically} {Rigorous} {Robot} {Policy} {Comparison}},
+    author = {Snyder, David and Badithela, Apurva and Matni, Nikolai and Pappas, George and Majumdar, Anirudha and Itkina, Masha and Nishimura, Haruki},
+    booktitle={arXiv preprint arXiv:2603.13616}
+    year = {2026},
+} 
+```
