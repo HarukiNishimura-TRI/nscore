@@ -1,16 +1,16 @@
 # README 
 Instructions for installation and usage of NSCORE, a nonparametric sequential procedure for rigorous robot policy comparison. NSCORE has minimal and lightweight computational requirements, and is easy to wrap around existing simulation and hardware evaluation pipelines.  
 
-### Installation (conda)
+## Installation (conda)
 conda create -n nscore --file requirements_conda.txt  
 conda activate nscore  
 pip install -r requirements_pip.txt  
 
-### Usage
+## Usage
 
 
 
-### Citation
+## Citation
 If you find this code useful, please cite our work: 
 
 ```bibtex
