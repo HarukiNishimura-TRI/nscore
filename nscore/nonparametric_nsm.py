@@ -22,7 +22,7 @@ class ContinuousNsmTest(SequentialTestBase):
 
     This class defines a novel exact nonnegative supermartingale (NSM) test for general discrete 
     partial credit evaluation schema. This test was developed by D. Snyder, A. Badithela, H. Nishimura, 
-    and additional collaborators from Princeton University, the University of Pennsylvania, and the 
+    and additional collaborators from the University of Pennsylvania, Princeton University, and the 
     Toyota Research Institute (TRI). 
 
     Attributes: 
