@@ -151,6 +151,18 @@ class BernoulliNsmTest(SequentialTestBase):
         is_bernoulli_1 = datum_1 in [0, 1]
         if not (is_bernoulli_0 and is_bernoulli_1):
             raise (ValueError("Input data are not interpretable as Bernoulli."))
+        else:
+            try:
+                if np.array(datum_0).size > 1 or len(datum_0) > 1:
+                    raise ValueError("step() method can only accept single data points.")
+            except:
+                pass
+            try:
+                if np.array(datum_1).size > 1 or len(datum_1) > 1:
+                    raise ValueError("step() method can only accept single data points.")
+            except:
+                pass
+        
         if verbose:
             print(
                 (

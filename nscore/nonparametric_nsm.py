@@ -252,6 +252,39 @@ class ContinuousNsmTest(SequentialTestBase):
         Raise:
             ValueError: If the input data take non-Bernoulli values.
         """
+        # Check that data is appropriately bounded in [0, 1] and has size 1
+        if isinstance(datum_0, bool):
+            pass
+        elif (isinstance(datum_0, int) or isinstance(datum_0, float)):
+            if (datum_0 < 0. or datum_0 > 1):
+                raise ValueError("Invalid datum_0; int / float is outside acceptable range [0, 1]")
+        elif isinstance(datum_0, list):
+            if len(datum_0) > 1 or datum_0[0] < 0. or datum_0[0] > 1.:
+                raise ValueError("Invalid input for datum_0")
+            datum_0 = datum_0[0]
+        elif isinstance(datum_0, np.array):
+            if (datum_0.shape[0]) > 1 or datum_0[0] < 0. or datum_0[0] > 1.:
+                raise ValueError("Invalid input for datum_0")
+            datum_0 = datum_0[0]
+        else:
+            raise TypeError("Unacceptable type for datum_0")
+        
+        if isinstance(datum_1, bool):
+            pass
+        elif (isinstance(datum_1, int) or isinstance(datum_1, float)):
+            if (datum_1 < 0. or datum_1 > 1):
+                raise ValueError("Invalid datum_1; int / float is outside acceptable range [0, 1]")
+        elif isinstance(datum_1, list):
+            if len(datum_1) > 1 or datum_1[0] < 0. or datum_1[0] > 1.:
+                raise ValueError("Invalid input for datum_1")
+            datum_1 = datum_1[0]
+        elif isinstance(datum_1, np.array):
+            if (datum_1.shape[0]) > 1 or datum_1[0] < 0. or datum_1[0] > 1.:
+                raise ValueError("Invalid input for datum_1")
+            datum_1 = datum_1[0]
+        else:
+            raise TypeError("Unacceptable type for datum_1")
+
         # Partial credit data should be given as the index of the relevant score entry in self.c
         discrete_datum_0 = int(np.floor(datum_0 * (self.K-1)))
         discrete_datum_1 = int(np.floor(datum_1 * (self.K-1)))
@@ -279,7 +312,7 @@ class ContinuousNsmTest(SequentialTestBase):
             discrete_datum_1 = int(np.floor(datum_1 * (self.K-1)))
         
         # Henceforth: datum_0 and datum_1 are in {0, 1, ..., self.K-1}.
-        # Print to stdout if verbose is True.
+        # Print to stdout if verbose is True. 
         if verbose:
             print(
                 (
