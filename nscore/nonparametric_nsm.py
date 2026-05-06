@@ -262,12 +262,18 @@ class ContinuousNsmTest(SequentialTestBase):
             if len(datum_0) > 1 or datum_0[0] < 0. or datum_0[0] > 1.:
                 raise ValueError("Invalid input for datum_0")
             datum_0 = datum_0[0]
-        elif isinstance(datum_0, np.array):
+        elif isinstance(datum_0, np.ndarray):
             if (datum_0.shape[0]) > 1 or datum_0[0] < 0. or datum_0[0] > 1.:
                 raise ValueError("Invalid input for datum_0")
             datum_0 = datum_0[0]
         else:
-            raise TypeError("Unacceptable type for datum_0")
+            try: 
+                datum_0 = float(datum_0)
+                if (datum_0 < 0. or datum_0 > 1):
+                    raise ValueError("Invalid datum_0; int / float is outside acceptable range [0, 1]")
+            except:
+                raise TypeError("Unacceptable type for datum_0")
+        
         
         if isinstance(datum_1, bool):
             pass
@@ -278,12 +284,17 @@ class ContinuousNsmTest(SequentialTestBase):
             if len(datum_1) > 1 or datum_1[0] < 0. or datum_1[0] > 1.:
                 raise ValueError("Invalid input for datum_1")
             datum_1 = datum_1[0]
-        elif isinstance(datum_1, np.array):
+        elif isinstance(datum_1, np.ndarray):
             if (datum_1.shape[0]) > 1 or datum_1[0] < 0. or datum_1[0] > 1.:
                 raise ValueError("Invalid input for datum_1")
             datum_1 = datum_1[0]
         else:
-            raise TypeError("Unacceptable type for datum_1")
+            try: 
+                datum_1 = float(datum_1)
+                if (datum_1 < 0. or datum_1 > 1):
+                    raise ValueError("Invalid datum_1; int / float is outside acceptable range [0, 1]")
+            except:
+                raise TypeError("Unacceptable type for datum_1")
 
         # Partial credit data should be given as the index of the relevant score entry in self.c
         discrete_datum_0 = int(np.floor(datum_0 * (self.K-1)))

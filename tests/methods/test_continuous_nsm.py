@@ -61,6 +61,13 @@ eval_density_wsr = np.load(
     f"{paper_data_path}/DENSITY/density_eval_wsr.npy"
 )
 
+# RL Mujoco Data
+eval_cartpole_15k = (1. / 200.) * np.load(
+    f"{paper_data_path}/RL/Cartpole/completed_trials_rewards_steps15000.npy"
+)[:, 0]
+eval_cartpole_50k = (1. / 200.) * np.load(
+    f"{paper_data_path}/RL/Cartpole/completed_trials_rewards_steps50000.npy"
+)[:, 0]
 
 ##### Continuous NSM Test #####
 @pytest.fixture(scope="module")
@@ -181,4 +188,30 @@ def continuous_nsm_densities(request):
 
 def test_continuous_nsm_density_time(continuous_nsm_densities, sequence_0, sequence_1, expected):
     result = continuous_nsm_densities.run_on_sequence(sequence_0, sequence_1)
+    assert np.abs(result.info["Time"] - expected) <= 0.6
+
+
+@pytest.fixture(scope="module")
+def continuous_nsm_rl(request):
+    test = ContinuousNsmTest(
+        alternative=request.param,
+        alpha=0.05,
+        c=np.arange(41)/40.,
+        verbose=False,
+    )
+    return test
+
+@pytest.mark.parametrize(
+    ("continuous_nsm_rl", "sequence_0", "sequence_1", "expected"),
+    [
+        # fmt: off
+        (Hypothesis.P0LessThanP1, eval_cartpole_15k, eval_cartpole_50k, 9.5),
+        (Hypothesis.P0MoreThanP1, eval_cartpole_15k, eval_cartpole_50k, 999.5),
+        # fmt: on
+    ],
+    indirect=["continuous_nsm_rl"],
+)
+
+def test_continuous_nsm_rl_time(continuous_nsm_rl, sequence_0, sequence_1, expected):
+    result = continuous_nsm_rl.run_on_sequence(sequence_0, sequence_1)
     assert np.abs(result.info["Time"] - expected) <= 0.6
