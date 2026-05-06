@@ -53,6 +53,15 @@ eval_set_table = np.load(
     f"{paper_data_path}/PC_LBM/Part2/SetUpBreakfastTable.npy"
 )
 
+# Nonparametric densities -- load times-to-decision for NSCORE and WSR
+eval_density_nscore = np.load(
+    f"{paper_data_path}/DENSITY/density_eval_nscore.npy"
+)
+eval_density_wsr = np.load(
+    f"{paper_data_path}/DENSITY/density_eval_wsr.npy"
+)
+
+
 ##### Continuous NSM Test #####
 @pytest.fixture(scope="module")
 def continuous_nsm(request):
@@ -146,4 +155,30 @@ def continuous_nsm_lbm(request):
 
 def test_continuous_nsm_lbm_time(continuous_nsm_lbm, sequence_0, sequence_1, expected):
     result = continuous_nsm_lbm.run_on_sequence(sequence_0, sequence_1)
+    assert np.abs(result.info["Time"] - expected) <= 0.6
+
+
+@pytest.fixture(scope="module")
+def continuous_nsm_densities(request):
+    test = ContinuousNsmTest(
+        alternative=request.param,
+        alpha=0.05,
+        c=np.arange(21)/20.,
+        verbose=False,
+    )
+    return test
+
+@pytest.mark.parametrize(
+    ("continuous_nsm_densities", "sequence_0", "sequence_1", "expected"),
+    [
+        # fmt: off
+        (Hypothesis.P0LessThanP1, eval_density_nscore, eval_density_wsr, 525.5),
+        (Hypothesis.P0MoreThanP1, eval_density_nscore, eval_density_wsr, 1499.5),
+        # fmt: on
+    ],
+    indirect=["continuous_nsm_densities"],
+)
+
+def test_continuous_nsm_density_time(continuous_nsm_densities, sequence_0, sequence_1, expected):
+    result = continuous_nsm_densities.run_on_sequence(sequence_0, sequence_1)
     assert np.abs(result.info["Time"] - expected) <= 0.6
