@@ -298,7 +298,7 @@ class ContinuousNsmTest(SequentialTestBase):
                 datum_0 = 0.
                 discrete_datum_0 = 0
         else:
-            idx_0 = int(self.K) 
+            idx_0 = int(self.K - 1) 
             while datum_0 < self.c[idx_0] - 1e-9:
                 idx_0 -= 1
 
@@ -312,7 +312,7 @@ class ContinuousNsmTest(SequentialTestBase):
                 datum_1 = 0
                 discrete_datum_1 = 0
         else:
-            idx_1 = int(self.K) 
+            idx_1 = int(self.K - 1) 
             while datum_1 < self.c[idx_1] - 1e-9:
                 idx_1 -= 1
 
