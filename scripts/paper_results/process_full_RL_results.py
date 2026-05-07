@@ -30,7 +30,7 @@ if __name__ == "__main__":
                 pass
 
             data_array = np.zeros((500000, ))
-
+            legit_index = int(0)
             for k in range(10):
                 index_string = "_" + str(k+1) + "_"
 
@@ -40,8 +40,7 @@ if __name__ == "__main__":
 
                     if (method_string in path_string) and (task_string in path_string) and (index_string in path_string):
                         found_correct_idx = True 
-                        path_string_to_use = path_string 
-                        legit_index = int(0)
+                        path_string_to_use = path_string
                         for jj in range(50):
                             try:
                                 tmp_data = np.load(path_string_to_use + f"/episodic_returns_{jj}.npy")[:, 0]
