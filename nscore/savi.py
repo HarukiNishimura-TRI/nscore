@@ -392,12 +392,13 @@ class MirroredOracleSaviTest(MirroredSaviTest):
 
 
 class PartialCreditSaviTest(SequentialTestBase):
-    """SAVI test for two-by-two contingency tables.
+    """SAVI test for N-by-two contingency tables.
 
-    This class defines the SAVI test for two-by-two contingency tables as it appears
+    This class defines the SAVI test for N-by-two contingency tables as it appears
     in Section 2 of 'Exact Anytime-Valid Confidence Intervals for Contingency Tables and
     Beyond' by R. J. Turner and P. D. Grünwald (Statistics & Probability Letters 198,
-    2023).
+    2023). This is the Categorical (parametric) extension of the method for Bernoulli data, 
+    which is a special case: the canonical two-by-two contingency table problem. 
 
     Attributes:
         alternative: Specification of the alternative hypothesis.
@@ -432,16 +433,16 @@ class PartialCreditSaviTest(SequentialTestBase):
         # Current p-value that is not clipped at 1.0.
         self._unclipped_p_value = None
 
-        # Beta posterior for Bernoulli parameter P0.
+        # Dirichlet posterior for Categorical (vector) parameter P0.
         self._dirichlet_posterior_0 = None
-        # Beta posterior for Bernoulli parameter P1.
+        # Dirichlet posterior for Categorical (vector) parameter P1.
         self._dirichlet_posterior_1 = None
 
-        # Bayesian estimate of the Dirichlet alpha parameter and implied mean performance.
+        # Bayesian estimate of the Categorical distribution parameter and implied mean performance.
         self._estimated_p_0 = None
         self._estimated_mu_0 = None
 
-        # Bayesian estimate of the Dirichlet alpha parameter and implied mean performance.
+        # Bayesian estimate of the Categorical distribution parameter and implied mean performance.
         self._estimated_p_1 = None
         self._estimated_mu_1 = None
 
@@ -501,7 +502,7 @@ class PartialCreditSaviTest(SequentialTestBase):
             optimal_p_1 = self._estimated_p_1
         else:
             # solution for equation (11) in R. J. Turner and P. D. Grünwald (2023).
-            # Optimization goes HERE
+            # Optimization goes here
             ob_mat_1 = np.zeros(2*self.K)
             ob_mat_1[:self.K] = copy.deepcopy(self._alpha_0)
             ob_mat_1[self.K:] = copy.deepcopy(self._alpha_1)
@@ -534,18 +535,6 @@ class PartialCreditSaviTest(SequentialTestBase):
             optimal_p_0 = x.value[:self.K]
             optimal_p_1 = x.value[self.K:]
 
-            # if self.alternative is Hypothesis.P0LessThanP1:
-            #     print("Null Checksum: mu_0 > mu_1: ", np.dot(c_mat_4, x.value))
-            # elif self.alternative is Hypothesis.P0MoreThanP1:
-            #     print("Null Checksum: mu_0 < mu_1: ", np.dot(c_mat_4, x.value))
-            
-            # print("Current p_value: ", self.p_value)
-            # print("Null Optimal Mean:", np.dot(self.c, optimal_p_0))
-            # print("Alt Optimal Mean:", np.dot(self.c, optimal_p_1))
-            # breakpoint()
-            # optimal_p_0 = (self._estimated_p_0 + self._estimated_p_1) / 2
-            # optimal_p_1 = optimal_p_0
-
         vec_datum_0 = np.zeros(self.K)
         vec_datum_0[datum_0] += 1.
 
@@ -569,8 +558,8 @@ class PartialCreditSaviTest(SequentialTestBase):
             print(f"  E-value: {self.e_value:.5f}")
             print(f"  P-value: {self.p_value:.5f}")
 
-        # Finally, update the Beta posteriors and the estimates of the Bernoulli
-        # parameters.
+        # Finally, update the Dirichlet posteriors and the estimates 
+        # of the Categorical parameters.
         self._alpha_0[datum_0] += 1
         self._dirichlet_posterior_0 = dirichlet(alpha=self._alpha_0)
 
@@ -584,6 +573,7 @@ class PartialCreditSaviTest(SequentialTestBase):
             decision = Decision.AcceptAlternative
         else:
             decision = Decision.FailToDecide
+        
         info = {"p_value": self.p_value, "e_value": self.e_value, "Time": self._t}
         result = TestResult(decision, info)
 
@@ -608,14 +598,10 @@ class PartialCreditSaviTest(SequentialTestBase):
             if verbose:
                 print("    Null:        P0 <= P1")
                 print("    Alternative: P0 >  P1")
-            # self._beta_posterior_0 = beta(2, 1)
-            # self._beta_posterior_1 = beta(1, 2)
         elif self.alternative == Hypothesis.P0LessThanP1:
             if verbose:
                 print("    Null:        P0 >= P1")
                 print("    Alternative: P0 <  P1")
-            # self._beta_posterior_0 = beta(1, 2)
-            # self._beta_posterior_1 = beta(2, 1)
         
         self._dirichlet_posterior_0 = dirichlet(alpha=self._alpha_0)
         self._dirichlet_posterior_1 = dirichlet(alpha=self._alpha_1)
@@ -627,7 +613,7 @@ class PartialCreditSaviTest(SequentialTestBase):
 
     def _estimate_parameters(self, verbose: bool) -> None:
         if verbose:
-            print(("  Estimate the Bernoulli parameters from the Beta " "posteriors:"))
+            print(("  Estimate the Categorical parameters from the Dirichlet " "posteriors:"))
         self._estimated_p_0 = self._dirichlet_posterior_0.mean()
         self._estimated_mu_0 = np.dot(self.c, self._estimated_p_0)
 
@@ -635,6 +621,6 @@ class PartialCreditSaviTest(SequentialTestBase):
         self._estimated_mu_1 = np.dot(self.c, self._estimated_p_1)
         if verbose:
             print(
-                "    Estimated Bernoulli parameters: "
+                "    Estimated Categorical parameters: "
                 f"({self._estimated_p_0:.5f}, {self._estimated_p_1:.5f})"
             )
