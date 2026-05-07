@@ -20,8 +20,8 @@ from matplotlib import pyplot as plt
 class ContinuousNsmTest(SequentialTestBase):
     """ Nonnegative supermartingale (NSM) test for continuous outcomes, discretized solely to optimize lambda. 
 
-    This class defines a novel exact nonnegative supermartingale (NSM) test for general discrete 
-    partial credit evaluation schema. This test was developed by D. Snyder, A. Badithela, H. Nishimura, 
+    This class defines a novel exact nonnegative supermartingale (NSM) test for general bounded 
+    evaluation performance measures. This test was developed by D. Snyder, A. Badithela, H. Nishimura, 
     and additional collaborators from the University of Pennsylvania, Princeton University, and the 
     Toyota Research Institute (TRI). 
 
@@ -29,7 +29,7 @@ class ContinuousNsmTest(SequentialTestBase):
         alternative: Specification of the alternative hypothesis.
         alpha: Significance level of the test. 
         c: Partial credit evaluation score vector.
-        lambda_parameter: Key parameter of test structure. Lies in [0., 1.)
+        lambda_parameter: Key parameter of test structure. Is fit adaptively online; always in [0., 1.)
     """
 
     def __init__(
@@ -123,16 +123,6 @@ class ContinuousNsmTest(SequentialTestBase):
         
         return f_of_lambda
     
-    def _grad_lambda(self, Pbar, delta_P, lambda_estimate):
-        
-        function_value = 0.
-        for i in range(1, self.K-1):
-            for j in range(i+1, self.K):
-                function_value += ((delta_P[i, j] * (self.c[j]-self.c[i])) / (1. + (np.sign(delta_P[i, j]) * lambda_estimate * (self.c[j]-self.c[i]))))
-                function_value += ((-2. * lambda_estimate * (self.c[j]-self.c[i])**2 * Pbar[i, j]) / (1. - (lambda_estimate**2)*((self.c[j]-self.c[i])**2)))
-
-        return function_value
-    
     def _compute_optimal_lambda_long(self, verbose: bool) -> None:
         """
         Generalized method to compute the value lambda_opt which approximately maximizes
@@ -184,7 +174,7 @@ class ContinuousNsmTest(SequentialTestBase):
                 print("Current Phat: ")
                 print(Phat)
             
-            # Decompose Phat into symmetric (hysteresis) and antisymmetric (signal) components. 
+            # Decompose Phat into symmetric Pbar (hysteresis) and antisymmetric delta_P (signal) components. 
             Pbar = np.zeros((self.K, self.K))
             delta_P = np.zeros((self.K, self.K))
 
@@ -229,9 +219,6 @@ class ContinuousNsmTest(SequentialTestBase):
                 "    Estimated optimal lambda: "
                 f"{self.lambda_parameter:.5f}"
             )
-            fig, ax = plt.subplots(figsize=(10, 10))
-            ax.plot(LAMBDA_VALS, F_OF_LAMBDA)
-            fig.savefig("tmp_optimal_lambda.png", dpi=100)
 
     def step(
         self, 
@@ -250,8 +237,10 @@ class ContinuousNsmTest(SequentialTestBase):
             TestResult: Result of the hypothesis test.
 
         Raise:
-            ValueError: If the input data take non-Bernoulli values.
+            ValueError: If the input data take values not in [0., 1].
+            ValueError: If the input has length greater than 1
         """
+        
         # Check that data is appropriately bounded in [0, 1] and has size 1
         if isinstance(datum_0, bool):
             pass
@@ -296,11 +285,10 @@ class ContinuousNsmTest(SequentialTestBase):
             except:
                 raise TypeError("Unacceptable type for datum_1")
 
+        # Identify appropriate indices to reflect set membership for KDE component
         # Partial credit data should be given as the index of the relevant score entry in self.c
-        discrete_datum_0 = int(np.floor(datum_0 * (self.K-1)))
-        discrete_datum_1 = int(np.floor(datum_1 * (self.K-1)))
-        
-        # Special case: accept Bernoulli data in boolean form via reformatting. 
+
+        # Accept Bernoulli data in boolean form via reformatting. 
         # Map boolean to scores {0, 1}, corresponding to datum values {0, K-1}
         if isinstance(datum_0, bool):
             if datum_0:
@@ -310,7 +298,11 @@ class ContinuousNsmTest(SequentialTestBase):
                 datum_0 = 0.
                 discrete_datum_0 = 0
         else:
-            discrete_datum_0 = int(np.floor(datum_0 * (self.K-1)))
+            idx_0 = int(self.K) 
+            while datum_0 < self.c[idx_0] - 1e-9:
+                idx_0 -= 1
+
+            discrete_datum_0 = idx_0
         
         if isinstance(datum_1, bool):
             if datum_1:
@@ -320,9 +312,14 @@ class ContinuousNsmTest(SequentialTestBase):
                 datum_1 = 0
                 discrete_datum_1 = 0
         else:
-            discrete_datum_1 = int(np.floor(datum_1 * (self.K-1)))
+            idx_1 = int(self.K) 
+            while datum_1 < self.c[idx_1] - 1e-9:
+                idx_1 -= 1
+
+            discrete_datum_1 = idx_1
         
-        # Henceforth: datum_0 and datum_1 are in {0, 1, ..., self.K-1}.
+        # Henceforth: datum_0 and datum_1 are floats in [0., 1.]
+        # Meanwhile: discrete_datum_0 and discrete_datum_1 are integers in {0, 1, ..., self.K-1}.
         # Print to stdout if verbose is True. 
         if verbose:
             print(
@@ -366,7 +363,7 @@ class ContinuousNsmTest(SequentialTestBase):
         # Use the posteriors to estimate the empirical means
         self._estimate_parameters(verbose)
 
-        # Use posteriors and empirical means to compute optimal lambda
+        # Use posteriors and empirical means to compute optimal lambda for next evaluation draw
         self._compute_optimal_lambda_long(verbose)
 
         result = TestResult(decision, info)
@@ -389,13 +386,9 @@ class ContinuousNsmTest(SequentialTestBase):
             pass
 
         self._store_lambda_params = []
-        self._alpha_0 = np.ones(self.K) * 2. / self.K
-        # if np.sum(self._alpha_0) >= 20.:
-        #     self._alpha_0 *= 20. / np.sum(self._alpha_0)
 
+        self._alpha_0 = np.ones(self.K) * 2. / self.K
         self._alpha_1 = np.ones(self.K) * 2. / self.K
-        # if np.sum(self._alpha_1) >= 20.:
-        #     self._alpha_1 *= 20. / np.sum(self._alpha_1)
 
         self._dirichlet_posterior_0 = dirichlet(alpha=self._alpha_0)
         self._dirichlet_posterior_1 = dirichlet(alpha=self._alpha_1)

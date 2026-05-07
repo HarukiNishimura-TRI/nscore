@@ -41,9 +41,17 @@ class WsrComparisonTest(SequentialTestBase):
 
         # Time state for decision information
         self._t = None
-
+        
+        # Comparison is undertaken via confidence intervals of the differences
+        # These store the current lower_bound and upper_bound
         self._previous_lb = None
         self._previous_ub = None
+
+        # Variable in which to store the observed policy outcome differences
+        self._observed_data = None
+
+        # Store history of confidence intervals for the mean
+        self._intervals = None
 
         self.reset(verbose)
     

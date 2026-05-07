@@ -20,10 +20,9 @@ from matplotlib import pyplot as plt
 class BernoulliNsmTest(SequentialTestBase):
     """ Nonnegative supermartingale (NSM) test for Bernoulli outcomes. 
 
-    This class defines a novel exact nonnegative supermartingale (NSM) test for general discrete 
-    partial credit evaluation schema, specialized to Bernoulli outcomes. This test was developed by D. Snyder, 
-    A. Badithela, H. Nishimura, and additional collaborators from Princeton University, the University of Pennsylvania, 
-    and the Toyota Research Institute (TRI). 
+    This class defines a novel exact nonnegative supermartingale (NSM) test for statistical robot evaluation schema procedures
+    that are specialized to Bernoulli outcomes. This test was developed by D. Snyder, A. Badithela, H. Nishimura, 
+    and additional collaborators from Princeton University, the University of Pennsylvania, and the Toyota Research Institute (TRI). 
 
     Attributes: 
         alternative: Specification of the alternative hypothesis.
@@ -71,6 +70,7 @@ class BernoulliNsmTest(SequentialTestBase):
         self._estimated_p_1 = None
 
         self._store_lambda_params = None
+
         # Time state for decision information.
         self._t = None
 
@@ -348,16 +348,6 @@ class PartialCreditNsmTest(SequentialTestBase):
         
         return f_of_lambda
     
-    def _grad_lambda(self, Pbar, delta_P, lambda_estimate):
-        
-        function_value = 0.
-        for i in range(1, self.K-1):
-            for j in range(i+1, self.K):
-                function_value += ((delta_P[i, j] * (self.c[j]-self.c[i])) / (1. + (np.sign(delta_P[i, j]) * lambda_estimate * (self.c[j]-self.c[i]))))
-                function_value += ((-2. * lambda_estimate * (self.c[j]-self.c[i])**2 * Pbar[i, j]) / (1. - (lambda_estimate**2)*((self.c[j]-self.c[i])**2)))
-
-        return function_value
-    
     def _compute_optimal_lambda_long(self, verbose: bool) -> None:
         """
         Generalized method to compute the value lambda_opt which approximately maximizes
@@ -454,9 +444,6 @@ class PartialCreditNsmTest(SequentialTestBase):
                 "    Estimated optimal lambda: "
                 f"{self.lambda_parameter:.5f}"
             )
-            fig, ax = plt.subplots(figsize=(10, 10))
-            ax.plot(LAMBDA_VALS, F_OF_LAMBDA)
-            fig.savefig("tmp_optimal_lambda.png", dpi=100)
 
     def _compute_optimal_bernoulli_lambda(self, verbose: bool) -> None:
         """
@@ -500,88 +487,6 @@ class PartialCreditNsmTest(SequentialTestBase):
         # Store selected lambda parameter for debugging purposes. 
         self._store_lambda_params.append(self.lambda_parameter)
 
-    def _compute_optimal_lambda(self, verbose: bool) -> None:
-        """
-        Accelerated version of self._compute_optimal_lambda_long(), which 
-        uses provable quadratic concavity in the maximization of the expected
-        martingale growth rate to accelerate computation of the optimal lambda. 
-
-        Specifically: strict concavity in the objective means that the gradient 
-        in lambda is monotonically decreasing, which should allow for binary search
-        to find where grad_lambda = 0. This should then allow for fast computation of 
-        the maximizing lambda. 
-
-        However, initial implementation has been somewhat unreliable, so this method remains 
-        TODO pending additional design consideration. 
-        
-        Args:
-            verbose: If True, print the outputs to stdout. 
-        """
-        raise NotImplementedError()
-    
-        if verbose:
-            print(("  Compute optimal lambda from the Beta " "posteriors:"))
-        
-        doneFlag = False
-        if self.alternative is Hypothesis.P0LessThanP1:
-            if self._estimated_mu_1 <= self._estimated_mu_0:
-                self.lambda_parameter = 0.
-                doneFlag = True 
-        else:
-            if self._estimated_mu_0 <= self._estimated_mu_1:
-                self.lambda_parameter = 0. 
-                doneFlag = True
-        
-        if doneFlag:
-            pass
-        else:
-            # Compute intermediate quantities Pbar, delta_P
-            p0_hat = (self._dirichlet_posterior_0.mean()).reshape(-1, 1)
-            p1_hat = (self._dirichlet_posterior_1.mean()).reshape(-1, 1)
-            Phat = np.matmul(p0_hat, np.transpose(p1_hat))
-            
-            Pbar = np.zeros((self.K, self.K))
-            delta_P = np.zeros((self.K, self.K))
-
-            for i in range(1, self.K - 1):
-                for j in range(i+1, self.K):
-                    Pbar[i, j] = np.minimum(Phat[i, j], Phat[j, i])
-                    Pbar[j, i] = np.minimum(Phat[i, j], Phat[j, i])
-                    delta_P[i, j] = Phat[i, j] - Phat[j, i]
-                    delta_P[j, i] = -(Phat[i, j] - Phat[j, i])
-            
-            if self._grad_lambda(Pbar, delta_P, 0.) <= 0.:
-                self.lambda_parameter = 0. 
-            elif self._grad_lambda(Pbar, delta_P, 1. - (1e-9)) >= 0.:
-                self.lambda_parameter = 1.-(1e-9)
-            else:
-                lambda_min = 0. 
-                lambda_max = 1.-1e-9
-                error_term = 1. 
-                while error_term > 1e-6:
-                    lambda_estimate = 0.5 * (lambda_min + lambda_max)
-                    tmp = self._grad_lambda(Pbar, delta_P, lambda_estimate)
-                    if np.abs(tmp) <= 1e-7: 
-                        error_term = np.abs(tmp)
-                    else:
-                        if tmp < 0.:
-                            # lambda estimate too large; assign lambda_max <-- lambda_estimate
-                            lambda_max = lambda_estimate
-                        else:
-                            # lambda_estimate too small; assign lambda_min <-- lambda_estimate
-                            lambda_min = lambda_estimate
-                        
-                        error_term = np.minimum(np.abs(tmp), np.abs(lambda_max - lambda_min))
-                
-                self.lambda_parameter = lambda_estimate
-        
-        self._store_lambda_params.append(self.lambda_parameter)
-        
-        if verbose:
-            print(
-                "    Estimated optimal lambda: "
-                f"{self.lambda_parameter:.5f}"
-            )
 
     def step(
         self, 
