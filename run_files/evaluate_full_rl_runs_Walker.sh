@@ -1,0 +1,1 @@
+python scripts/paper_results/evaluate_full_RL_results.py -t Walker

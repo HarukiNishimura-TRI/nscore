@@ -3,6 +3,8 @@ import sys
 add_path = os.getcwd()
 sys.path.append(add_path)
 
+import argparse
+
 from copy import deepcopy
 import numpy as np 
 from tqdm import tqdm 
@@ -12,15 +14,50 @@ from nscore.nonparametric_nsm import MirroredContinuousNsmTest
 from nscore.wsr import WsrComparisonTest
 
 if __name__ == "__main__":
+    """
+    Method to process RL evaluations using each general-purpose evaluation procedure. 
+    """
+    parser = argparse.ArgumentParser(
+        description=(
+            "This script runs a meta-evaluation of the NSM-vs-WSR procedure on RL Mujoco Benchmark data."
+        )
+    )
+    parser.add_argument(
+        "-t",
+        "--task",
+        type=str,
+        default="Ant",
+        help=("Task string for loading data. Must be in [Ant, Cheetah, Hopper, Humanoid, Pendulum, Pusher, Walker]" "Defaults to Ant."),
+    )
+    parser.add_argument(
+        "-a",
+        "--alpha",
+        type=float,
+        default=0.005,
+        help=("Tunable false positive rate; must lie in (0., 1.). " 
+              "Defaults to 0.005."
+        ),
+    )
+    args = parser.parse_args()
+
+    allowed_tasks = ["Ant", "Cheetah", "Hopper", "Humanoid", "Pendulum", "Pusher", "Walker"]
+
+    task_string = args.task 
+    task_is_allowed = False 
+    for i in range(len(allowed_tasks)):
+        if task_string in allowed_tasks[i]:
+            task_is_allowed = True 
+    
+    try:
+        assert task_is_allowed
+    except:
+        raise ValueError("Could not match the task name to the set of allowed tasks. Please try again. ")
 
     base_load_path = "data/RL/Task_and_Method/"
     
     methods = ["ddpg", "ppo", "sac", "td3"]
-    tasks = ["Ant", "Cheetah", "Hopper", "Humanoid", "Pendulum", "Pusher", "Walker"]
-
     complete_data_base = np.zeros((500000, len(methods)))
 
-    task_string = tasks[0]
     critical_length = 500000
     for i in range(len(methods)):
         method_string = methods[i]
@@ -41,9 +78,30 @@ if __name__ == "__main__":
     n_comparisons = len(methods) * (len(methods)-1) // 2
     n_policies = len(methods)
 
-    # RL task reward parameters 
-    upper_bound_on_reward = np.maximum(np.max(complete_data), 6000.)
-    lower_bound_on_reward = np.minimum(np.min(complete_data), 0.)
+    # RL task reward parameters
+    if "Cheetah" in task_string:
+        upper_bound_on_reward = np.maximum(np.max(complete_data), 15000.)
+        lower_bound_on_reward = np.minimum(np.min(complete_data), -1000.)
+    elif "Hopper" in task_string:
+        upper_bound_on_reward = np.maximum(np.max(complete_data), 4500.)
+        lower_bound_on_reward = np.minimum(np.min(complete_data), 0.)
+    elif "Walker" in task_string:
+        upper_bound_on_reward = np.maximum(np.max(complete_data), 5500.)
+        lower_bound_on_reward = np.minimum(np.min(complete_data), -200.)
+    elif "Ant" in task_string:
+        upper_bound_on_reward = np.maximum(np.max(complete_data), 6500.)
+        lower_bound_on_reward = np.minimum(np.min(complete_data), -200.)
+    elif "Pend" in task_string:
+        upper_bound_on_reward = np.maximum(np.max(complete_data), 1000.)
+        lower_bound_on_reward = np.minimum(np.min(complete_data), 0.)
+    elif "Push" in task_string:
+        upper_bound_on_reward = np.maximum(np.max(complete_data), 0.)
+        lower_bound_on_reward = np.minimum(np.min(complete_data), -100.)
+    elif "Human" in task_string:
+        upper_bound_on_reward = np.maximum(np.max(complete_data), 6500.)
+        lower_bound_on_reward = np.minimum(np.min(complete_data), 0.)
+    else:
+        raise ValueError("Invalid task!")
 
     # Set evaluation parameters 
     total_alpha = 0.05
@@ -135,14 +193,27 @@ if __name__ == "__main__":
             print(f"Terminating loop early at step {ii+1} because meta-evaluation has completed")
             break
         
+    
+    base_save_path = "data/RL/Task/"
+
+    termination_idx = iteration_limit
+    if full_is_finished and partial_is_finished:
+        termination_idx = stop_idx 
+    
 
     # Print summary information
     print("Average time to full ranking")
-    print(f"NSCORE: {np.mean(time_to_all[:iteration_limit, 0])}")
-    print(f"WSR: {np.mean(time_to_all[:iteration_limit, 1])}")
+    print(f"NSCORE: {np.mean(time_to_all[:termination_idx, 0])}")
+    print(f"WSR: {np.mean(time_to_all[:termination_idx, 1])}")
     print()
     print("Average time to separating N-1 policies")
-    print(f"NSCORE: {np.mean(time_to_all_but_one[:iteration_limit, 0])}")
-    print(f"WSR: {np.mean(time_to_all_but_one[:iteration_limit, 1])}")
+    print(f"NSCORE: {np.mean(time_to_all_but_one[:termination_idx, 0])}")
+    print(f"WSR: {np.mean(time_to_all_but_one[:termination_idx, 1])}")
     print()
-    breakpoint()
+
+    np.save(base_save_path + task_string + "_time_to_all.npy", time_to_all[:termination_idx, :])
+    np.save(base_save_path + task_string + "_time_to_all_but_one.npy", time_to_all_but_one[:termination_idx, :])
+    np.save(base_save_path + task_string + "_auxiliary_info.npy", np.array([termination_idx, np.minimum(meta_procedure_test_full_ranking._test_for_alternative._p_value, meta_procedure_test_full_ranking._test_for_null._p_value), np.minimum(meta_procedure_test_partial_ranking._test_for_alternative._p_value, meta_procedure_test_partial_ranking._test_for_null._p_value)]))
+
+
+    
