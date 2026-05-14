@@ -24,7 +24,7 @@ In other words, if our policy was _no better than the baseline_, then the probab
 ### Understanding the Arguments: c
 At present, NSCORE takes advantage of certain efficient properties of linear representations of the data-generating distributions. The vector $c \in [0, 1]^K$ corresponds to this representation, which is perhaps best understood as a discretization of the interval $[0, 1]$ into bins (where $c$ encodes the bin edge positions). We then construct an approximation of the distribution law from the empirical counts within each bin.  
 
-### Instantiating an NSCORE Test
+### Instantiating and Running an NSCORE Test on Full Datasets (Basic Usage)
 To use NSCORE, it is necessary to specify the three aforementioned parameters. 
 
 ```python 
@@ -35,6 +35,52 @@ c: [np.ndarray]
 
 ```
 
+As an example: for Bernoulli data, to test if our policy $\pi_1$ has a higher success rate than a baseline $\pi_0$ at $95\%$ confidence, we would specify the test:
+
+```python 
+nscore_test = BernoulliNsmTest(alternative=Hypothesis.P0LessThanP1, alpha=0.05, c=np.arange(2)/1.) 
+```
+and, given an evaluation sequence of success/failure outcomes for each policy, we would run the test as:
+```python 
+nscore_result = nscore_test.run_on_sequence(outcomes_for_pi_0, outcomes_for_pi_1)
+```
+
+### Instantiating and Running an NSCORE Test on Full Datasets (General Metrics)
+If we have performance measures that are not bounded in $[0, 1]$, then the measures must be __normalized__ using _a priori_ knowledge of the test domain. For example, on the Mujoco InvertedPendulum-v4 task, the reward is bounded by the time horizon $T$; therefore, normalization can be undertaken simply by scaling down the results. First, we define a more detailed NSM test for the more complex performance measure:
+```python 
+nscore_inverted_pendulum_test = ContinuousNsmTest(alternative=Hypothesis.P0LessThanP1, alpha=0.05, c=np.arange(101)/100.) 
+```
+Next, we use the same `run_on_sequence()` functionality, but normalize the scores: 
+```python 
+nscore_inverted_pendulum_result = nscore_inverted_pendulum_test.run_on_sequence(outcomes_for_pi_0/T, outcomes_for_pi_1/T)
+```
+
+### Instantiating and Running an NSCORE Test _Online_ (General Metrics)
+NSCORE can be used to save time by allowing the evaluator to update the evaluation _online_ as they gather trials. The test stops precisely
+when enough evidence has accumulated to be $1-\alpha$ confident that the intended decision is correct. Taking the InvertedPendulum-v4 task as the running example, we first initialize the test as before:
+```python 
+nscore_online_evaluation_test = ContinuousNsmTest(alternative=Hypothesis.P0LessThanP1, alpha=0.05, c=np.arange(101)/100.) 
+```
+and then implement a simple evaluation protocol
+```python
+time_of_decision = 0
+decided = False
+maximum_number_of_evals_per_policy = 100 # Optional
+while (decided is False) and (time_of_decision < maximum_number_of_evals_per_policy):
+    new_datum_pi_0 = run_pi_0_on_new_iid_environment(ics, ...)
+    new_datum_pi_1 = run_pi_1_on_new_iid_environment(ics, ...)
+
+    result = nscore_online_evaluation_test.step(new_datum_pi_0, new_datum_pi_1)
+
+    if result.decision is Decision.AcceptAlternative:
+        decided = True
+    
+    time_of_decision += 1
+
+# Print the results
+print(f"NSCORE test decided in {time_of_decision} trials per policy")
+print(f"NSCORE decision: {result.decision}")
+```
 ## Tutorials
 Tutorials that illustrate standard use cases of NSCORE can be found as Jupyter Notebooks under `/notebooks`.
 
