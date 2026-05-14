@@ -19,7 +19,7 @@ Returning to _reward measures_: imagine there might be a bug in our codebase. We
 ### Understanding the Arguments: Alpha
 When we compare ourselves to a baseline method, we want to establish that our performance is better. But evaluations have significant randomness, meaning that we cannot simply use empirical success to argue for policy improvement. Instead, we propose the following evidential justification: "the probability that our robot policy's performance is _not_ better than the baseline policy is less than $\alpha$."
 
-In other words, if our policy was _no better than the baseline_, then the probability of observing as strong empirical evidence in favor of our method is less than $\alpha$. This is a strong form of generalization that allows us to tune our confidence level to any desired $\alpha \in (0, 1)$. 
+This guarantee means that, if our policy was _no better than the baseline_, then the probability of observing as strong empirical evidence in favor of our method is less than $\alpha$. Conversely, we can claim $1-\alpha$ __confidence__ that our new policy is indeed better than the baseline (on the shared distribution of environments that both policies are evaluated on). This is a strong form of generalization that allows us to tune our confidence level to any desired $\alpha \in (0, 1)$. 
 
 ### Understanding the Arguments: c
 At present, NSCORE takes advantage of certain efficient properties of linear representations of the data-generating distributions. The vector $c \in [0, 1]^K$ corresponds to this representation, which is perhaps best understood as a discretization of the interval $[0, 1]$ into bins (where $c$ encodes the bin edge positions). We then construct an approximation of the distribution law from the empirical counts within each bin.  
@@ -35,7 +35,7 @@ c: [np.ndarray]
 
 ```
 
-As an example: for Bernoulli data, to test if our policy $\pi_1$ has a higher success rate than a baseline $\pi_0$ at $95\%$ confidence, we would specify the test:
+As an example: for Bernoulli data, to test if our policy $\pi_1$ has a higher success rate than a baseline $\pi_0$ at $95$\% confidence, we would specify the test:
 
 ```python 
 nscore_test = BernoulliNsmTest(alternative=Hypothesis.P0LessThanP1, alpha=0.05, c=np.arange(2)/1.) 
@@ -81,6 +81,27 @@ while (decided is False) and (time_of_decision < maximum_number_of_evals_per_pol
 print(f"NSCORE test decided in {time_of_decision} trials per policy")
 print(f"NSCORE decision: {result.decision}")
 ```
+
+### Understanding an NSCORE Test Result
+We utilize the same structure for test decisions as our previous work, [STEP](https://github.com/TRI-ML/sequentialized_barnard_tests). Formally, Neyman-Pearson statistical testing only allows for _accepting_ the alternative hypothesis (if sufficient evidence for it is accumulated, of course). This is encoded by a `Decision` object; for a realized test that rejects the null and accepts the alternative, the associated decision would be `test.decision = Decision.AcceptAlternative`. 
+
+Of course, the data might be insufficiently indicative of the alternative. Because the tests are sequential, there is the opportunity to gather more, so we define a placeholder, denoted by `Decision.FailToDecide`. For anytime-valid tests, data may in principle be collected in perpetuity; thus, `Decision.FailToDecide` implies simply that 'not enough information has yet accumulated to make up our mind one way or the other.' 
+
+Finally, as mentioned earlier, there are practical instances where we might wish to monitor both directions of a comparison. Informally, the standard direction seeks certify that our policy has improved over the baseline, while the other direction gives us reliable statistical evidence that we should stop early and 'give up;' that is, it tells us that our novel method is performing significantly worse, and that gathering more trials is unlikely to change that assessment. This can be used as a bug-catcher, as well as to reliable help with design iterations _when used responsibly_. 
+
+__We emphasize that a "kitchen sink" approach of just trying a bunch of different $\pi_1^{[i]}$ until a significant result is found against $\pi_0$ constitutes p-hacking, and invalidates statistical assurances__. More precisely, each $\pi_1^{[i]}$ must be accompanied by an additional union bound correction of $\alpha$ -- concretely: if you test five new policies against $\pi_0$, with each test at level $\alpha$, any significant difference found can only be reported at level $5\alpha$! This is the union bound, or "Bonferroni correction" in classical hypothesis testing. 
+
+However, when used responsibly, the two-sided test can add significant further empirical savings to the practitioner's evaluation burden. In our setup, a two-sided test is termed `Mirrored`, because it will consist of two _mirrored_ one-sided tests; the tests will individually check the hypotheses `Hypothesis.P0LessThanP1` and `Hypothesis.P0MoreThanP1`. In this context, the user will still specify a specific alternative, which then amounts to selecting which hypothesis is the semantic "Alternative" and which is the "Null." From this, we construct a third decision option, `Decision.AcceptNull`, which amounts to accepting the semantic "Null" as the alternative of a second one-sided test. For example: 
+```python 
+mirrored_nscore_test = MirroredContinuousNsmTest(alternative=Hypothesis.P0LessThanP1, alpha=0.05, c=np.arange(101)/100.) 
+```
+will induce two one-sided tests: 
+```python 
+nscore_test_for_alternative: ContinuousNsmTest(alternative=Hypothesis.P0LessThanP1, alpha=0.05, c=np.arange(101)/100.)
+nscore_test_for_null: ContinuousNsmTest(alternative=Hypothesis.P0MoreThanP1, alpha=0.05, c=np.arange(101)/100.)
+```
+Formally `result.decision = Decision.AcceptNull` here is equivalent to accepting the _alternative hypothesis_ of `nscore_test_for_null` (as required by Neyman-Pearson testing -- one is not generally allowed to accept a null hypothesis). Semantically, however, we have _informally_ accepted the null in the sense that we have concluded, with high confidence, that $\mu_0 > \mu_1$.
+ 
 ## Tutorials
 Tutorials that illustrate standard use cases of NSCORE can be found as Jupyter Notebooks under `/notebooks`.
 
