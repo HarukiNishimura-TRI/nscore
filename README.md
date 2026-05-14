@@ -12,9 +12,9 @@ For additional motivation of N-SCORE and related methods, see Tutorials, below.
 ### Understanding the Arguments: Hypotheses
 NSCORE performs _mean comparison_ between two different random variables of unknown (possibly nonparametric) distribution shape. We will term the variables $R_0$ and $R_1$, with respective (unknown) means $\mu_0$ and $\mu_1$. 
 
-The first thing that we will need is a _hypothesis_: what do we want the relationship to be between $\mu_0$ and $\mu_1$? For example, if $R_0$ is a baseline procedure and $R_1$ is our novel method, we want $\mu_0 < \mu_1$ (under the convention that $R_i$ is a reward, i.e., higher is better). If $R_i$ is a cost measure, where lower is better, we may wish to specify the alternative $\mu_0 > \mu_1$. 
+The first thing that we will need is a _hypothesis_: what do we want the relationship to be between $\mu_0$ and $\mu_1$? For example, if $R_0$ is a measure of a baseline policy's performance and $R_1$ is a measure of the performance of our novel method, we want $\mu_0 < \mu_1$ (under the convention that $R_i$ is a reward, i.e., higher is better). This is specified precisely as `alternative=Hypothesis.P0LessThanP1` (the notation $p$ is derived from the original use case of comparing Bernoulli random variables, where the mean $\mu$ is equivalent to the conventional Bernoulli parameter $p$). Conversely, If the $R_i$ are cost measures, where lower is better, we may wish to specify the alternative $\mu_0 > \mu_1$. This is expressed directly as `alternative=Hypothesis.P0MoreThanP1`.  
 
-Returning to _reward measures_: imagine there might be a bug in our codebase. We might value a method that runs both tests simultaneously. The first test checks if we improve upon the baseline (assuming no bugs), while the second test quickly tells us if there might be a bug making us perform significantly worse than the baseline! This corresponds to the case of a Mirrored Test, where we keep track of both directions. 
+A second use also arises in the form of error checking. Returning to _reward measures_: imagine there might be a bug in our codebase. We might value a method that runs both tests simultaneously. The first test checks if we improve upon the baseline (assuming no bugs), while the second test quickly tells us if there might be a bug making us perform significantly worse than the baseline, allowing us to stop early and fix the problem! This corresponds to the case of a `Mirrored` (Two-Sided) Test, where we keep track of both directions. We will get into Mirrored tests a bit more, later.  
 
 ### Understanding the Arguments: Alpha
 When we compare ourselves to a baseline method, we want to establish that our performance is better. But evaluations have significant randomness, meaning that we cannot simply use empirical success to argue for policy improvement. Instead, we propose the following evidential justification: "the probability that our robot policy's performance is _not_ better than the baseline policy is less than $\alpha$."
@@ -101,7 +101,7 @@ nscore_test_for_alternative: ContinuousNsmTest(alternative=Hypothesis.P0LessThan
 nscore_test_for_null: ContinuousNsmTest(alternative=Hypothesis.P0MoreThanP1, alpha=0.05, c=np.arange(101)/100.)
 ```
 Formally `result.decision = Decision.AcceptNull` here is equivalent to accepting the _alternative hypothesis_ of `nscore_test_for_null` (as required by Neyman-Pearson testing -- one is not generally allowed to accept a null hypothesis). Semantically, however, we have _informally_ accepted the null in the sense that we have concluded, with high confidence, that $\mu_0 > \mu_1$.
- 
+
 ## Tutorials
 Tutorials that illustrate standard use cases of NSCORE can be found as Jupyter Notebooks under `/notebooks`.
 
