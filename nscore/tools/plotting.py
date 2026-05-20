@@ -103,6 +103,7 @@ def compare_success_and_get_cld(
     global_confidence_level: float,
     max_sample_size_per_model: int,
     shuffle: bool,
+    c: np.ndarray = np.arange(11)/10.,
     rng: Optional[np.random.Generator] = None,
     verbose: bool = True,
 ) -> Dict[str, str]:
@@ -123,6 +124,10 @@ def compare_success_and_get_cld(
             independent within each array. Set to True if, for example, each array is a
             concatenation of results from multiple tasks and you want to measure the
             aggregate multi-task performance.
+        c: Vector of evaluation outcomes (exact if partial credit), or of outcome discre-
+            tization (approximate if outcomes are continuous). For equispaced partial credit, 
+            NSCORE_k is equivalent to c = np.arange(k)/float(k-1) (for k >= 2). As a special 
+            case, Bernoulli data would use k = 2, implying c = np.arange(2)/1. should be used. 
         rng: Optional random number generator instance for shuffling. Only used if
             shuffle is True.
         verbose: Whether to print detailed output. Defaults to True.
@@ -146,7 +151,7 @@ def compare_success_and_get_cld(
     test = MirroredContinuousNsmTest(
         alternative=Hypothesis.P0LessThanP1,
         alpha=individual_alpha,
-        c=np.arange(11)/10.,
+        c=c,
     )
     test.reset()
 
