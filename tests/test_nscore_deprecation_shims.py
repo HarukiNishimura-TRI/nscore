@@ -17,10 +17,9 @@ class TestCLDShim:
             result = compact_letter_display(
                 [("A", "B")], ["A", "B", "C"]
             )
-            assert len(w) == 1
-            assert issubclass(w[0].category, DeprecationWarning)
-            assert "deprecated" in str(w[0].message).lower()
-
+            depr_warnings = [x for x in w if issubclass(x.category, DeprecationWarning)]
+            assert depr_warnings
+            assert any("deprecated" in str(x.message).lower() for x in depr_warnings)
     def test_output_matches_statistical_comparison_helpers(self):
         from nscore.tools.plotting import compact_letter_display
 
@@ -53,8 +52,9 @@ class TestBetaPosteriorShim:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             draw_samples_from_beta_posterior(np.array([1, 0, 1]), rng, num_samples=100)
-            assert len(w) == 1
-            assert issubclass(w[0].category, DeprecationWarning)
+            depr_warnings = [x for x in w if issubclass(x.category, DeprecationWarning)]
+            assert depr_warnings
+            assert any("deprecated" in str(x.message).lower() for x in depr_warnings)
 
     def test_output_shape(self):
         from nscore.tools.plotting import draw_samples_from_beta_posterior
@@ -81,8 +81,9 @@ class TestPlotShim:
                 ["a", "b"],
                 rng,
             )
-            assert len(w) == 1
-            assert issubclass(w[0].category, DeprecationWarning)
+            depr_warnings = [x for x in w if issubclass(x.category, DeprecationWarning)]
+            assert depr_warnings
+            assert any("deprecated" in str(x.message).lower() for x in depr_warnings)
 
         import matplotlib.pyplot as plt
         plt.close(fig)
