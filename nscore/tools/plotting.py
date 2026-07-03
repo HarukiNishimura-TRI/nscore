@@ -2,10 +2,8 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import warnings
 
-from matplotlib.cm import get_cmap
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import stats
 
 from statistical_comparison_core import Decision, Hypothesis
 from nscore.nonparametric_nsm import MirroredContinuousNsmTest
