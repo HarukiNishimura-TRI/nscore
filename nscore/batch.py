@@ -6,9 +6,8 @@ This module defines batch methods for hypothesis testing.
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.stats import barnard_exact
-import sequentialized_barnard_tests as sbt
 
-from sequentialized_barnard_tests.base import (
+from statistical_comparison_core import (
     Decision,
     Hypothesis,
     MirroredTestMixin,

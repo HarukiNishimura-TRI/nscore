@@ -8,7 +8,7 @@ from typing import Union
 import numpy as np
 from scipy.stats import beta, dirichlet
 
-from sequentialized_barnard_tests.base import (
+from statistical_comparison_core import (
     Decision,
     Hypothesis,
     MirroredTestMixin,

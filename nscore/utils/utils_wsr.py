@@ -1,5 +1,5 @@
 """
-Docstring for sequentialized_barnard_tests.utils.utils_wsr
+Docstring for nscore.utils.utils_wsr
 """
 
 import copy

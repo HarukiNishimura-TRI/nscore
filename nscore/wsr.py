@@ -1,10 +1,10 @@
 """
-Docstring for sequentialized_barnard_tests.wsr
+Docstring for nscore.wsr
 """
 
 import numpy as np
 from nscore.utils.utils_wsr import mean_cs_eff_corrected_membership_accelerated
-from sequentialized_barnard_tests.base import Decision, Hypothesis, SequentialTestBase, TestResult
+from statistical_comparison_core import Decision, Hypothesis, SequentialTestBase, TestResult
 
 from typing import Union
 
