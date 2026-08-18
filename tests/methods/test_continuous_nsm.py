@@ -7,7 +7,7 @@ sys.path.append('/home/dsnyder5/Documents/Github/nscore/')
 import numpy as np
 import pytest
 
-from sequentialized_barnard_tests.base import Decision, Hypothesis
+from statistical_comparison_core import Decision, Hypothesis
 from nscore.nonparametric_nsm import ContinuousNsmTest
 
 paper_data_path = str(

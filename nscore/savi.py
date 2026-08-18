@@ -14,7 +14,7 @@ import copy
 from numpy.typing import ArrayLike
 from scipy.stats import bernoulli, beta, dirichlet, multinomial
 
-from sequentialized_barnard_tests.base import (
+from statistical_comparison_core import (
     Decision,
     Hypothesis,
     MirroredTestMixin,
