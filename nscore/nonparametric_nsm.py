@@ -49,10 +49,6 @@ class ContinuousNsmTest(SequentialTestBase):
             verbose (optional): If True, print the outputs to stdout. Defaults to False.
         """
         self.alternative = alternative
-        self.alpha = alpha
-        
-        # Assign general martingale cutoff as function of self.alpha
-        self._cutoff = 1. / alpha
 
         self.c = c
         self.K = self.c.shape[0]
@@ -81,7 +77,18 @@ class ContinuousNsmTest(SequentialTestBase):
         self._martingale = None
         self._p_value = None
 
+        # Set alpha (and _cutoff) via the property, then reset.
+        self.alpha = alpha
         self.reset(verbose)
+
+    @property
+    def alpha(self):
+        return self._alpha
+
+    @alpha.setter
+    def alpha(self, value):
+        self._alpha = value
+        self._cutoff = 1.0 / value
     
     def _estimate_parameters(self, verbose: bool) -> None:
         """
@@ -430,6 +437,12 @@ class MirroredContinuousNsmTest(MirroredTestMixin, SequentialTestBase):
     """
 
     _base_class = ContinuousNsmTest
+    _wrapper_owned_attributes = frozenset({"_p_value", "_p_type"})
+
+    def __init__(self, alternative: Hypothesis, *args, **kwargs) -> None:
+        super().__init__(alternative, *args, **kwargs)
+        self._p_value = 1.0
+        self._p_type = "N/A"
 
     def step(self,
         datum_0: Union[bool, int, float],
@@ -474,6 +487,15 @@ class MirroredContinuousNsmTest(MirroredTestMixin, SequentialTestBase):
         else:
             decision = Decision.FailToDecide
 
+        alt_pv = result_for_alternative.info["P-Value"]
+        null_pv = result_for_null.info["P-Value"]
+        if alt_pv <= null_pv:
+            self._p_value = alt_pv
+            self._p_type = "alternative"
+        else:
+            self._p_value = null_pv
+            self._p_type = "null"
+
         result = TestResult(decision, info)
 
         return result
@@ -492,5 +514,7 @@ class MirroredContinuousNsmTest(MirroredTestMixin, SequentialTestBase):
         if verbose:
             print("Test for Null:")
         self._test_for_null.reset(verbose)
+        self._p_value = 1.0
+        self._p_type = "N/A"
 
     
