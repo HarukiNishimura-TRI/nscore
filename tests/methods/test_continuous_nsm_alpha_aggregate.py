@@ -1,5 +1,4 @@
-"""Tests for ContinuousNsmTest alpha property and MirroredContinuousNsmTest
-wrapper-owned aggregate metadata, alpha fan-out, and reset."""
+"""Tests for ContinuousNsmTest alpha state and mirrored NSM p-value metadata."""
 
 import numpy as np
 import pytest
@@ -12,20 +11,22 @@ C_BINARY = np.array([0.0, 1.0])
 
 
 # ---------------------------------------------------------------------------
-# ContinuousNsmTest alpha property
+# ContinuousNsmTest alpha state
 # ---------------------------------------------------------------------------
 
 class TestAlphaProperty:
-    def test_alpha_updates_cutoff(self):
+    def test_alpha_is_read_only(self):
         t = ContinuousNsmTest(Hypothesis.P0LessThanP1, alpha=0.05, c=C_BINARY)
         assert t.alpha == 0.05
         assert t._cutoff == pytest.approx(1.0 / 0.05)
 
-        t.alpha = 0.01
-        assert t.alpha == 0.01
-        assert t._cutoff == pytest.approx(1.0 / 0.01)
+        with pytest.raises(AttributeError):
+            t.alpha = 0.01
 
-    def test_alpha_change_does_not_reset_history(self):
+        assert t.alpha == 0.05
+        assert t._cutoff == pytest.approx(1.0 / 0.05)
+
+    def test_rejected_alpha_change_does_not_reset_history(self):
         t = ContinuousNsmTest(Hypothesis.P0LessThanP1, alpha=0.05, c=C_BINARY)
         # Feed a few data points to build history.
         t.step(0, 1)
@@ -35,7 +36,9 @@ class TestAlphaProperty:
         time_before = t._t
         lambda_len_before = len(t._store_lambda_params)
 
-        t.alpha = 0.01
+        with pytest.raises(AttributeError):
+            t.alpha = 0.01
+
         assert t._martingale == martingale_before
         assert t._p_value == p_value_before
         assert t._t == time_before
@@ -43,11 +46,11 @@ class TestAlphaProperty:
 
 
 # ---------------------------------------------------------------------------
-# MirroredContinuousNsmTest alpha fan-out
+# MirroredContinuousNsmTest alpha immutability
 # ---------------------------------------------------------------------------
 
 class TestMirroredAlphaFanout:
-    def test_alpha_fans_out_to_both_children(self):
+    def test_alpha_assignment_is_rejected_by_children(self):
         m = MirroredContinuousNsmTest(
             Hypothesis.P0LessThanP1, alpha=0.05, c=C_BINARY
         )
@@ -56,13 +59,15 @@ class TestMirroredAlphaFanout:
         assert m._test_for_alternative._cutoff == pytest.approx(20.0)
         assert m._test_for_null._cutoff == pytest.approx(20.0)
 
-        m.alpha = 0.01
-        assert m._test_for_alternative.alpha == 0.01
-        assert m._test_for_null.alpha == 0.01
-        assert m._test_for_alternative._cutoff == pytest.approx(100.0)
-        assert m._test_for_null._cutoff == pytest.approx(100.0)
+        with pytest.raises(AttributeError):
+            m.alpha = 0.01
 
-    def test_alpha_change_does_not_reset_child_or_wrapper_history(self):
+        assert m._test_for_alternative.alpha == 0.05
+        assert m._test_for_null.alpha == 0.05
+        assert m._test_for_alternative._cutoff == pytest.approx(20.0)
+        assert m._test_for_null._cutoff == pytest.approx(20.0)
+
+    def test_rejected_alpha_change_does_not_reset_child_or_wrapper_history(self):
         m = MirroredContinuousNsmTest(
             Hypothesis.P0LessThanP1, alpha=0.05, c=C_BINARY
         )
@@ -78,7 +83,9 @@ class TestMirroredAlphaFanout:
         wrapper_pv = m._p_value
         wrapper_pt = m._p_type
 
-        m.alpha = 0.01
+        with pytest.raises(AttributeError):
+            m.alpha = 0.01
+
         assert m._test_for_alternative._martingale == alt_mart
         assert m._test_for_alternative._p_value == alt_pv
         assert m._test_for_alternative._t == alt_t
@@ -103,6 +110,7 @@ class TestWrapperAggregate:
         alt_pv = m._test_for_alternative._p_value
         null_pv = m._test_for_null._p_value
         assert m._p_value == pytest.approx(min(alt_pv, null_pv))
+        assert m._p_value == pytest.approx(min(m._p_value_less, m._p_value_more))
 
     def test_wrapper_p_type_alternative_on_tie(self):
         m = MirroredContinuousNsmTest(
@@ -140,11 +148,38 @@ class TestWrapperAggregate:
         assert not hasattr(m._test_for_alternative, "_p_type")
         assert not hasattr(m._test_for_null, "_p_type")
 
+    def test_wrapper_tracks_directional_p_values(self):
+        less = MirroredContinuousNsmTest(
+            Hypothesis.P0LessThanP1, alpha=0.05, c=C_BINARY
+        )
+        for _ in range(3):
+            less.step(0, 1)
+
+        assert less._p_value_less == pytest.approx(
+            less._test_for_alternative._p_value_less
+        )
+        assert less._p_value_more == pytest.approx(less._test_for_null._p_value_more)
+        assert less._p_value == pytest.approx(min(less._p_value_less, less._p_value_more))
+
+        more = MirroredContinuousNsmTest(
+            Hypothesis.P0MoreThanP1, alpha=0.05, c=C_BINARY
+        )
+        for _ in range(3):
+            more.step(1, 0)
+
+        assert more._p_value_less == pytest.approx(more._test_for_null._p_value_less)
+        assert more._p_value_more == pytest.approx(
+            more._test_for_alternative._p_value_more
+        )
+        assert more._p_value == pytest.approx(min(more._p_value_less, more._p_value_more))
+
     def test_p_value_initialized_at_construction(self):
         m = MirroredContinuousNsmTest(
             Hypothesis.P0LessThanP1, alpha=0.05, c=C_BINARY
         )
         assert m._p_value == 1.0
+        assert m._p_value_less == 1.0
+        assert m._p_value_more == 1.0
         assert m._p_type == "N/A"
 
 
@@ -163,6 +198,8 @@ class TestReset:
 
         m.reset()
         assert m._p_value == 1.0
+        assert m._p_value_less == 1.0
+        assert m._p_value_more == 1.0
         assert m._p_type == "N/A"
         assert m._test_for_alternative._martingale == 1.0
         assert m._test_for_null._martingale == 1.0
@@ -196,3 +233,21 @@ class TestExistingBehavior:
         seq_1 = [1] * 30
         result = m.run_on_sequence(seq_0, seq_1)
         assert result.decision == Decision.AcceptAlternative
+
+
+# ---------------------------------------------------------------------------
+# ContinuousNsmTest score-grid handling
+# ---------------------------------------------------------------------------
+
+class TestScoreGrid:
+    def test_nonuniform_score_grid_is_used_for_discretization(self):
+        c = np.array([0.0, 0.2, 0.8, 1.0])
+        test = ContinuousNsmTest(Hypothesis.P0LessThanP1, alpha=0.05, c=c)
+
+        prior_alpha_0 = test._alpha_0.copy()
+        prior_alpha_1 = test._alpha_1.copy()
+        test.step(0.79, 0.81)
+
+        assert test._alpha_0[1] == pytest.approx(prior_alpha_0[1] + 1.0)
+        assert test._alpha_0[2] == pytest.approx(prior_alpha_0[2])
+        assert test._alpha_1[2] == pytest.approx(prior_alpha_1[2] + 1.0)
