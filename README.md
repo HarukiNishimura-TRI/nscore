@@ -1,10 +1,35 @@
 # README 
 Instructions for installation and usage of NSCORE, a nonparametric sequential procedure for rigorous robot policy comparison. NSCORE has minimal and lightweight computational requirements, and is easy to wrap around existing simulation and hardware evaluation pipelines.  
 
-## Installation (conda)
-conda create -n nscore --file requirements_conda.txt  
-conda activate nscore  
-pip install -r requirements_pip.txt  
+## Installation
+
+Install NSCORE from the repository root with pip:
+
+```bash
+pip install .
+```
+
+For local development, use an editable install:
+
+```bash
+pip install -e .
+```
+
+NSCORE depends on `statistical-comparison-core` and
+`statistical-comparison-helpers`. Until those packages are available from your
+configured package index, install them from their local repositories or ensure
+they are otherwise available on your Python path before installing NSCORE.
+
+### Optional conda environment
+
+Conda is not required to install NSCORE, but it can be used to create an isolated
+environment:
+
+```bash
+conda create -n nscore --file requirements_conda.txt
+conda activate nscore
+pip install .
+```
 
 ## Applicability (Non-Technical)
 For additional motivation of N-SCORE and related methods, see Tutorials, below. 
