@@ -251,3 +251,44 @@ class TestScoreGrid:
         assert test._alpha_0[1] == pytest.approx(prior_alpha_0[1] + 1.0)
         assert test._alpha_0[2] == pytest.approx(prior_alpha_0[2])
         assert test._alpha_1[2] == pytest.approx(prior_alpha_1[2] + 1.0)
+
+    def test_datum_below_grid_floor_bins_to_zero(self):
+        """A datum under c[0] clamps to the lowest bin instead of underflowing.
+
+        The previous downward linear scan had no floor at zero, so it walked
+        the bin index past the start of the array and raised IndexError.
+        """
+        c = np.array([0.2, 0.5, 1.0])
+        test = ContinuousNsmTest(Hypothesis.P0LessThanP1, alpha=0.05, c=c)
+
+        prior_alpha_0 = test._alpha_0.copy()
+        prior_alpha_1 = test._alpha_1.copy()
+        test.step(0.1, 0.6)
+
+        assert test._alpha_0[0] == pytest.approx(prior_alpha_0[0] + 1.0)
+        assert test._alpha_1[1] == pytest.approx(prior_alpha_1[1] + 1.0)
+
+    def test_datum_outside_unit_interval_is_rejected_before_binning(self):
+        """Out-of-range data is validated out, so binning never sees it.
+
+        This is why the underflow above is only reachable through a score grid
+        whose first entry is above zero, not through out-of-range data.
+        """
+        c = np.array([0.0, 0.5, 1.0])
+        test = ContinuousNsmTest(Hypothesis.P0LessThanP1, alpha=0.05, c=c)
+
+        with pytest.raises(ValueError):
+            test.step(-0.05, 0.75)
+
+    def test_grid_boundary_values_bin_to_their_own_index(self):
+        """Exact grid points bin to themselves, including the endpoints."""
+        c = np.array([0.0, 0.2, 0.8, 1.0])
+
+        for datum, expected_bin in ((0.0, 0), (0.2, 1), (0.8, 2), (1.0, 3)):
+            test = ContinuousNsmTest(Hypothesis.P0LessThanP1, alpha=0.05, c=c)
+            prior_alpha_0 = test._alpha_0.copy()
+            test.step(datum, 0.5)
+
+            assert test._alpha_0[expected_bin] == pytest.approx(
+                prior_alpha_0[expected_bin] + 1.0
+            ), f"datum {datum} did not bin to index {expected_bin}"
