@@ -16,9 +16,14 @@ pip install -e .
 ```
 
 NSCORE depends on `statistical-comparison-core` and
-`statistical-comparison-helpers`. Until those packages are available from your
-configured package index, install them from their local repositories or ensure
-they are otherwise available on your Python path before installing NSCORE.
+`statistical-comparison-helpers`. Both are published on PyPI, so pip resolves
+them automatically and no manual setup is required.
+
+NSCORE itself is also published, so it can be installed without a checkout:
+
+```bash
+pip install nscore
+```
 
 ### Optional conda environment
 
