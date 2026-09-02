@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="nscore",
-    version="0.1.0",
+    version="0.1.1",
     description="Sequential statistical hypothesis testing for generalized performance measures.",
     author="David Snyder, Haruki Nishimura",
     author_email="dsnyder5@engineering.upenn.edu, haruki.nishimura@tri.global",
