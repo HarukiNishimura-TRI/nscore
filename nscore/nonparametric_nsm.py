@@ -3,6 +3,7 @@
 This module defines the sequential test for arbitrary partial credit observations based on
 a novel nonnegative martingale construction which maintains E[M_t] = 1 w.p. 1 for all t.
 """
+from functools import lru_cache
 from typing import Union
 
 import numpy as np
@@ -15,6 +16,38 @@ from statistical_comparison_core import (
     SequentialTestBase,
     TestResult,
 )
+
+
+@lru_cache(maxsize=8)
+def _coefficient_grid(dtype: str, grid_bytes: bytes):
+    """Share fixed log terms across tests, without retaining mutable score grids.
+
+    Key by both dtype and contents: subtraction must retain the grid's original
+    precision, and edits to a caller-owned grid must not reuse stale tables.
+    Keep these tables outside test instances so checkpoints do not copy them.
+    """
+    c = np.frombuffer(grid_bytes, dtype=np.dtype(dtype))
+    rows, cols = np.triu_indices(len(c), 1)
+    differences = c[cols] - c[rows]
+    lambdas = (np.arange(100) + 0.5) / 100
+    shape = (len(lambdas), len(differences))
+    log_dtype = np.result_type(c.dtype, lambdas.dtype)
+    positive = np.empty(shape, dtype=log_dtype)
+    negative = np.empty(shape, dtype=log_dtype)
+    quadratic = np.empty(shape, dtype=log_dtype)
+    for column, difference in enumerate(differences):
+        for row, coefficient in enumerate(lambdas):
+            # Compute scalar logs once, retaining the original arithmetic and
+            # scalar log rounding even on NumPy builds with vector log kernels.
+            positive[row, column] = np.log(1.0 + coefficient * difference)
+            negative[row, column] = np.log(1.0 - coefficient * difference)
+            quadratic[row, column] = np.log(
+                1.0 - coefficient * coefficient * difference * difference
+            )
+    tables = rows, cols, lambdas, positive, negative, quadratic
+    for table in tables:
+        table.flags.writeable = False
+    return tables
 
 
 class ContinuousNsmTest(SequentialTestBase):
@@ -154,6 +187,28 @@ class ContinuousNsmTest(SequentialTestBase):
 
         return f_of_lambda
 
+    def _f_of_lambdas(self, Pbar, delta_P):
+        """Evaluate the unchanged 100-point objective in scalar addition order."""
+        rows, cols, lambdas, positive, negative, quadratic = _coefficient_grid(
+            self.c.dtype.str, self.c.tobytes()
+        )
+        if not len(rows):
+            return np.zeros(len(lambdas))
+        delta = delta_P[rows, cols]
+        sign = np.sign(delta)
+        if self.alternative is not Hypothesis.P0LessThanP1:
+            sign = -sign
+        signal_logs = np.where(sign > 0, positive, np.where(sign < 0, negative, 0.0))
+        terms = np.empty((len(lambdas), 2 * len(rows)), dtype=quadratic.dtype)
+        terms[:, 0::2] = np.abs(delta) * signal_logs
+        terms[:, 1::2] = Pbar[rows, cols] * quadratic
+        # A sum/dot product can reassociate additions and change numerical ties.
+        # Interleave the two terms per pair, then accumulate strictly in order.
+        np.cumsum(terms, axis=1, out=terms)
+        # The original search stores each scalar objective in a float64 array,
+        # even when the score grid uses extended precision.
+        return terms[:, -1].astype(float, copy=False)
+
     def _compute_optimal_lambda_long(self, verbose: bool) -> None:
         """
         Generalized method to compute the value lambda_opt which approximately maximizes
@@ -168,10 +223,9 @@ class ContinuousNsmTest(SequentialTestBase):
         Note that in this terminology, the mean of the null and alternative are respectively
         np.dot(c, p0) and np.dot(c, p1).
 
-        In practice, lambda is univariate and we are able to approximately solve this optimization
-        via direct discretization. This is not the most efficient method in theory, but is reliable
-        and takes a fixed number of calls to the function evaluation (making it a good, predictable
-        method until further accelerations can be reliably implemented).
+        Search the same fixed 100-point discretization at each update. The log
+        terms depend only on the score grid and candidate lambda, so cache them
+        and evaluate all candidates together without changing summation order.
 
         Args:
             verbose: If True, print the outputs to stdout.
@@ -209,12 +263,11 @@ class ContinuousNsmTest(SequentialTestBase):
             Pbar = np.zeros((self.K, self.K))
             delta_P = np.zeros((self.K, self.K))
 
-            for i in range(self.K - 1):
-                for j in range(i + 1, self.K):
-                    # Hysteresis term
-                    Pbar[i, j] = np.minimum(Phat[i, j], Phat[j, i])
-                    # Signal term
-                    delta_P[i, j] = Phat[i, j] - Phat[j, i]
+            rows, cols, lambdas, _, _, _ = _coefficient_grid(
+                self.c.dtype.str, self.c.tobytes()
+            )
+            Pbar[rows, cols] = np.minimum(Phat[rows, cols], Phat[cols, rows])
+            delta_P[rows, cols] = Phat[rows, cols] - Phat[cols, rows]
 
             if verbose:
                 print("Current Pbar: ")
@@ -223,23 +276,8 @@ class ContinuousNsmTest(SequentialTestBase):
                 print("Current delta_P: ")
                 print(delta_P)
 
-            # Set of possible lambda values
-            LAMBDA_VALS = (np.arange(100) + 0.5) / 100
-            F_OF_LAMBDA = np.zeros(LAMBDA_VALS.shape[0])
-
-            # Compute the function value for all lambda in LAMBDA_VALS
-            for i in range(LAMBDA_VALS.shape[0]):
-                lambda_val = LAMBDA_VALS[i]
-                f_lambda = self._f_of_lambda(Pbar, delta_P, lambda_val)
-                F_OF_LAMBDA[i] = f_lambda
-
-            # Take the arg-maximum
-            critical_idx = np.argmax(F_OF_LAMBDA)
-            try:
-                # Choose the largest lambda to break ties
-                self.lambda_parameter = LAMBDA_VALS[critical_idx[-1]]
-            except:
-                self.lambda_parameter = LAMBDA_VALS[critical_idx]
+            # Preserve np.argmax's first-maximum tie break (smallest lambda).
+            self.lambda_parameter = lambdas[np.argmax(self._f_of_lambdas(Pbar, delta_P))]
 
         # Store the parameter so that we can debug things later if needed. 
         self._store_lambda_params.append(self.lambda_parameter)
